@@ -40,15 +40,10 @@ client.on('qr', qr => {
     console.log('📱 QR Code gerado!');
     qrcode.generate(qr, {small: true});
     
-    // Salvar QR para interface web
     global.currentQR = qr;
     global.botStatus = 'Aguardando QR Code';
     
-    console.log('QR salvo globalmente:', !!global.currentQR);
-    
-    // Emitir para interface web
     if (global.io) {
-        console.log('📡 Enviando QR via Socket.IO');
         const QRCode = require('qrcode');
         QRCode.toDataURL(qr).then(qrImage => {
             global.io.emit('qr-update', { 
@@ -58,8 +53,6 @@ client.on('qr', qr => {
         }).catch(err => {
             console.error('Erro ao converter QR:', err);
         });
-    } else {
-        console.log('⚠️ Socket.IO não disponível');
     }
 });
 
@@ -123,7 +116,6 @@ client.initialize().catch((err) => {
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
-// Função para pausar o bot
 function pauseBotForUserControl() {
     botActive = false;
     console.log('⏸️ Bot pausado por 10 minutos');
@@ -138,69 +130,106 @@ function pauseBotForUserControl() {
     }, PAUSE_DURATION);
 }
 
-// ✅ TODOS OS SERVIÇOS ORIGINAIS DA BARBEARIA
-const services = [
-    { name: "Barba", time: "20min", price: "a partir de R$ 20,00" },
-    { name: "Barba na cera (designer)", time: "30min", price: "a partir de R$ 35,00" },
-    { name: "Barba na cera (remoção total)", time: "40min", price: "a partir de R$ 50,00" },
-    { name: "Corte de cabelo", time: "40min", price: "a partir de R$ 28,00" },
-    { name: "Corte + barba + sobrancelha", time: "1h:10min", price: "a partir de R$ 55,00" },
-    { name: "Corte + barba", time: "1h:00min", price: "a partir de R$ 45,00" },
-    { name: "Depilação nasal", time: "15min", price: "a partir de R$ 15,00" },
-    { name: "Hidratação + lavar", time: "10min", price: "a partir de R$ 15,00" },
-    { name: "Luzes / reflexo", time: "1h:00min", price: "a partir de R$ 45,00" },
-    { name: "Pigmentação cabelo ou barba", time: "15min", price: "a partir de R$ 18,00" },
-    { name: "Platinado (nevou)", time: "1h:00min", price: "a partir de R$ 90,00" },
-    { name: "Relaxamento", time: "20min", price: "a partir de R$ 35,00" },
-    { name: "Sobrancelhas", time: "10min", price: "a partir de R$ 10,00" },
-    { name: "Sobrancelhas na cera", time: "25min", price: "a partir de R$ 15,00" }
-];
-
-const address = "Av. Paulistana 2015, Natal, Rio Grande do Norte 59108120";
-const operatingHours = "Seg a Sex: 09h as 19h\nSab: 09h as 16h";
-const schedulingLink = "https://agendeonline.salonsoft.com.br/arretadobarbearia";
+// ✅ CORRIGIDO: Usar variável global diretamente
+function isAuthorizedNumber(phoneNumber) {
+    try {
+        // Usar configurações globais diretamente
+        const controlNumber = global.botConfig?.controlNumber;
+        
+        console.log('🔍 Verificando autorização:');
+        console.log('   Configurações globais existem:', !!global.botConfig);
+        console.log('   Número controle configurado:', controlNumber);
+        
+        if (!controlNumber || controlNumber.trim() === '') {
+            console.log('⚠️ Número de controle não configurado - comando negado');
+            return false;
+        }
+        
+        // Normalizar números para comparação
+        const normalizedControl = controlNumber.replace(/\D/g, '');
+        const normalizedPhone = phoneNumber.replace('@c.us', '').replace(/\D/g, '');
+        
+        console.log('   Número controle normalizado:', normalizedControl);
+        console.log('   Número recebido normalizado:', normalizedPhone);
+        
+        const isAuthorized = normalizedControl === normalizedPhone;
+        console.log('   Autorizado:', isAuthorized ? '✅' : '❌');
+        
+        return isAuthorized;
+    } catch (error) {
+        console.log('❌ Erro ao verificar autorização:', error.message);
+        return false;
+    }
+}
 
 client.on('message', async msg => {
     try {
-        // ✅ Verificar se bot está pausado manualmente
         if (global.botPaused) {
             console.log('🚫 Bot pausado manualmente - não processando mensagens');
             return;
         }
         
-        // Verificar comandos de controle PRIMEIRO (aceita de qualquer número)
+        // ✅ Comandos de controle com autorização
         if (msg.body === '!pausar') {
             console.log('🎯 COMANDO !pausar DETECTADO de:', msg.from);
-            pauseBotForUserControl();
-            await client.sendMessage(msg.from, '⏸️ Bot pausado por 10 minutos');
+            
+            if (isAuthorizedNumber(msg.from)) {
+                pauseBotForUserControl();
+                await client.sendMessage(msg.from, '⏸️ Bot pausado por 10 minutos');
+            } else {
+                console.log('❌ Comando !pausar negado - número não autorizado');
+                await client.sendMessage(msg.from, '❌ Você não tem permissão para usar este comando');
+            }
             return;
         }
         
         if (msg.body === '!ativar') {
             console.log('🎯 COMANDO !ativar DETECTADO de:', msg.from);
-            botActive = true;
-            if (pauseTimeout) {
-                clearTimeout(pauseTimeout);
+            
+            if (isAuthorizedNumber(msg.from)) {
+                botActive = true;
+                if (pauseTimeout) {
+                    clearTimeout(pauseTimeout);
+                }
+                console.log('✅ Bot reativado manualmente');
+                await client.sendMessage(msg.from, '▶️ Bot reativado');
+            } else {
+                console.log('❌ Comando !ativar negado - número não autorizado');
+                await client.sendMessage(msg.from, '❌ Você não tem permissão para usar este comando');
             }
-            console.log('✅ Bot reativado manualmente');
-            await client.sendMessage(msg.from, '▶️ Bot reativado');
             return;
         }
         
         if (msg.body === '!status') {
             console.log('🎯 COMANDO !status DETECTADO de:', msg.from);
-            const status = botActive ? 'Ativo ✅' : 'Pausado ⏸️';
-            await client.sendMessage(msg.from, `🤖 Status do bot: ${status}`);
+            
+            if (isAuthorizedNumber(msg.from)) {
+                const status = botActive ? 'Ativo ✅' : 'Pausado ⏸️';
+                await client.sendMessage(msg.from, `🤖 Status do bot: ${status}`);
+            } else {
+                console.log('❌ Comando !status negado - número não autorizado');
+                await client.sendMessage(msg.from, '❌ Você não tem permissão para usar este comando');
+            }
             return;
         }
         
-        // Se o bot estiver pausado, não processar mensagens de clientes
         if (!botActive) {
             console.log('🚫 Bot pausado - não processando mensagens');
             return;
         }
 
         console.log('📨 Processando mensagem:', msg.body, 'de:', msg.from);
+        
+        // ✅ Usar configurações globais diretamente
+        const botConfig = global.botConfig || {
+            services: [],
+            address: "Endereço não configurado",
+            operatingHours: "Horário não configurado",
+            schedulingLink: "Link não configurado",
+            welcomeMessage: "Bem-vindo!"
+        };
+        
+        console.log('🔧 Usando configurações globais - Serviços:', botConfig.services.length);
         
         // Menu principal
         if (msg.body.match(/(menu|Menu|dia|tarde|noite|oi|Oi|Olá|olá|ola|Ola)/i) && msg.from.endsWith('@c.us')) {
@@ -229,7 +258,7 @@ client.on('message', async msg => {
 
             const menuMessage = `Olá *${name.split(" ")[0]}*! 👋
 
-Bem-vindo(a) à *Barbearia Arretado*! 💈
+${botConfig.welcomeMessage}
 
 Como posso te ajudar hoje?
 
@@ -256,7 +285,7 @@ Digite o número da opção desejada!`;
                 `📅 *Agendamento Online*
 
 Para marcar seu horário, acesse nosso sistema:
-${schedulingLink}
+${botConfig.schedulingLink}
 
 ✨ É rápido e fácil!
 Esperamos por você! 💈`
@@ -271,8 +300,10 @@ Esperamos por você! 💈`
             await chat.sendStateTyping();
             await delay(2000);
             
+            console.log('📋 Enviando lista de serviços atualizada - Total:', botConfig.services.length);
+            
             let servicesList = "💰 *Confira nossos serviços e valores:*\n\n";
-            services.forEach(service => {
+            botConfig.services.forEach(service => {
                 servicesList += `• ${service.name} (${service.time}): ${service.price}\n`;
             });
             servicesList += "\n📞 Estamos à disposição para qualquer dúvida!";
@@ -290,10 +321,10 @@ Esperamos por você! 💈`
             
             await client.sendMessage(msg.from, 
                 `📍 *Nossa Localização:*
-${address}
+${botConfig.address}
 
 🕒 *Horário de Funcionamento:*
-${operatingHours}
+${botConfig.operatingHours}
 
 Esperamos sua visita! 💈✨`
             );
