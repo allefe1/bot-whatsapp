@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  whatsapp-bot:
+    build: .
+    container_name: bot-barbearia
+    restart: unless-stopped
+    ports:
+      - "3000:3000"  # ✅ NOVO: Expor porta para interface web
+    volumes:
+      - ./session_data:/usr/src/app/.wwebjs_auth
+      - ./logs:/usr/src/app/logs
+      - ./public:/usr/src/app/public  # ✅ NOVO: Volume para arquivos da interface
+    environment:
+      - NODE_ENV=production
+      - PORT=3000  # ✅ NOVO: Definir porta da aplicação
+    # Configurações específicas para Puppeteer
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - seccomp:unconfined
+    # Configuração de memória
+    mem_limit: 1g
+    memswap_limit: 1g
+    # ✅ NOVO: Healthcheck para monitorar se a aplicação está rodando
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Barbearia - Painel de Controle</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .status.connected { 
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+        
+        .status.disconnected { 
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            color: #721c24;
+            border: 2px solid #dc3545;
+        }
+        
+        .status.waiting { 
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            color: #856404;
+            border: 2px solid #ffc107;
+        }
+        
+        .qr-container {
+            text-align: center;
+            margin: 25px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .qr-container img {
+            max-width: 300px;
+            border: 3px solid #007bff;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,123,255,0.4);
+        }
+        
+        .btn.danger {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            box-shadow: 0 4px 15px rgba(220,53,69,0.3);
+        }
+        
+        .btn.danger:hover {
+            box-shadow: 0 6px 20px rgba(220,53,69,0.4);
+        }
+        
+        .btn.success {
+            background: linear-gradient(135deg, #28a745, #1e7e34);
+            box-shadow: 0 4px 15px rgba(40,167,69,0.3);
+        }
+        
+        .btn.success:hover {
+            box-shadow: 0 6px 20px rgba(40,167,69,0.4);
+        }
+        
+        .btn.warning {
+            background: linear-gradient(135deg, #ffc107, #e0a800);
+            color: #212529;
+            box-shadow: 0 4px 15px rgba(255,193,7,0.3);
+        }
+        
+        .btn.warning:hover {
+            box-shadow: 0 6px 20px rgba(255,193,7,0.4);
+        }
+        
+        .services-list {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+        
+        .service-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .controls-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+        
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border-color: #28a745;
+        }
+        
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border-color: #dc3545;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            .controls-section {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🤖 Bot Barbearia Arretado - Painel de Controle</h1>
+    
+    <div class="container">
+        <h2>📊 Status do Bot</h2>
+        <div id="status" class="status disconnected">Carregando...</div>
+        
+        <div id="qr-section" style="display: none;">
+            <h3>📱 QR Code para Conexão</h3>
+            <div class="qr-container">
+                <img id="qr-image" src="" alt="QR Code">
+                <p><strong>Escaneie este QR Code com seu WhatsApp para conectar o bot.</strong></p>
+            </div>
+        </div>
+        
+        <div class="controls-section">
+            <button class="btn" onclick="refreshQR()">🔄 Atualizar QR</button>
+            <button class="btn danger" onclick="restartBot()">🔄 Reiniciar Bot</button>
+            <button class="btn warning" onclick="pauseBot()">⏸️ Pausar Bot</button>
+            <button class="btn success" onclick="resumeBot()">▶️ Reativar Bot</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2>⚙️ Configurações do Bot</h2>
+        <form id="config-form">
+            <div class="form-group">
+                <label>Mensagem de Boas-vindas:</label>
+                <input type="text" id="welcomeMessage" placeholder="Bem-vindo(a) à Barbearia...">
+            </div>
+            
+            <div class="form-group">
+                <label>Endereço:</label>
+                <input type="text" id="address" placeholder="Endereço da barbearia">
+            </div>
+            
+            <div class="form-group">
+                <label>Horário de Funcionamento:</label>
+                <textarea id="operatingHours" rows="3" placeholder="Seg a Sex: 09h as 19h..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Link de Agendamento:</label>
+                <input type="url" id="schedulingLink" placeholder="https://...">
+            </div>
+            
+            <button type="submit" class="btn">💾 Salvar Configurações</button>
+        </form>
+    </div>
+    
+    <div class="container">
+        <h2>💰 Serviços da Barbearia</h2>
+        <div id="services-list" class="services-list">
+            <!-- Serviços serão carregados aqui -->
+        </div>
+        <div style="margin-top: 15px;">
+            <button class="btn" onclick="addService()">➕ Adicionar Serviço</button>
+            <button class="btn" onclick="loadConfig()">🔄 Recarregar Lista</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        
+        // Atualizar status em tempo real
+        socket.on('status-update', (data) => {
+            updateStatus(data.status);
+        });
+        
+        socket.on('qr-update', (data) => {
+            showQR(data.qr);
+            updateStatus(data.status);
+        });
+        
+        function updateStatus(status) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = status;
+            
+            statusEl.className = 'status ';
+            if (status === 'Conectado' || status === 'Autenticado') {
+                statusEl.className += 'connected';
+                document.getElementById('qr-section').style.display = 'none';
+            } else if (status === 'Aguardando QR Code') {
+                statusEl.className += 'waiting';
+                document.getElementById('qr-section').style.display = 'block';
+            } else {
+                statusEl.className += 'disconnected';
+            }
+        }
+        
+        function showQR(qrData) {
+            if (qrData) {
+                document.getElementById('qr-image').src = qrData;
+                document.getElementById('qr-section').style.display = 'block';
+            }
+        }
+        
+        async function refreshQR() {
+            try {
+                const response = await fetch('/qr');
+                const data = await response.json();
+                if (data.qr) {
+                    document.getElementById('qr-image').src = data.qr;
+                    document.getElementById('qr-section').style.display = 'block';
+                }
+                updateStatus(data.status);
+            } catch (error) {
+                console.error('Erro ao atualizar QR:', error);
+                showAlert('Erro ao atualizar QR Code', 'error');
+            }
+        }
+        
+        async function restartBot() {
+            if (!confirm('Tem certeza que deseja reiniciar o bot?')) return;
+            
+            try {
+                const response = await fetch('/bot-control', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ action: 'restart' })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('Bot reiniciado com sucesso!', 'success');
+                } else {
+                    showAlert('Erro: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao reiniciar bot:', error);
+                showAlert('Erro ao reiniciar bot', 'error');
+            }
+        }
+        
+        async function pauseBot() {
+            try {
+                const response = await fetch('/bot-control', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ action: 'pause' })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('Bot pausado com sucesso!', 'success');
+                } else {
+                    showAlert('Erro: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao pausar bot:', error);
+                showAlert('Erro ao pausar bot', 'error');
+            }
+        }
+        
+        async function resumeBot() {
+            try {
+                const response = await fetch('/bot-control', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ action: 'resume' })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('Bot reativado com sucesso!', 'success');
+                } else {
+                    showAlert('Erro: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao reativar bot:', error);
+                showAlert('Erro ao reativar bot', 'error');
+            }
+        }
+        
+        // Carregar configurações
+        async function loadConfig() {
+            try {
+                const response = await fetch('/config');
+                const config = await response.json();
+                
+                document.getElementById('welcomeMessage').value = config.welcomeMessage;
+                document.getElementById('address').value = config.address;
+                document.getElementById('operatingHours').value = config.operatingHours;
+                document.getElementById('schedulingLink').value = config.schedulingLink;
+                
+                // Carregar serviços
+                const servicesList = document.getElementById('services-list');
+                servicesList.innerHTML = '';
+                config.services.forEach((service, index) => {
+                    const serviceEl = document.createElement('div');
+                    serviceEl.className = 'service-item';
+                    serviceEl.innerHTML = `
+                        <strong>${service.name}</strong><br>
+                        <small>⏱️ ${service.time} | 💵 ${service.price}</small>
+                    `;
+                    servicesList.appendChild(serviceEl);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar configurações:', error);
+                showAlert('Erro ao carregar configurações', 'error');
+            }
+        }
+        
+        // Salvar configurações
+        document.getElementById('config-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const config = {
+                welcomeMessage: document.getElementById('welcomeMessage').value,
+                address: document.getElementById('address').value,
+                operatingHours: document.getElementById('operatingHours').value,
+                schedulingLink: document.getElementById('schedulingLink').value
+            };
+            
+            try {
+                const response = await fetch('/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('Configurações salvas com sucesso!', 'success');
+                } else {
+                    showAlert('Erro ao salvar configurações', 'error');
+                }
+            } catch (error) {
+                showAlert('Erro ao salvar configurações', 'error');
+            }
+        });
+        
+        function addService() {
+            const name = prompt('Nome do serviço:');
+            const time = prompt('Tempo (ex: 30min):');
+            const price = prompt('Preço (ex: R$ 25,00):');
+            
+            if (name && time && price) {
+                showAlert('Funcionalidade de adicionar serviços em desenvolvimento', 'error');
+            }
+        }
+        
+        function showAlert(message, type) {
+            // Remover alertas existentes
+            const existingAlerts = document.querySelectorAll('.alert');
+            existingAlerts.forEach(alert => alert.remove());
+            
+            // Criar novo alerta
+            const alert = document.createElement('div');
+            alert.className = `alert ${type}`;
+            alert.textContent = message;
+            
+            // Inserir no início do body
+            document.body.insertBefore(alert, document.body.firstChild);
+            
+            // Remover após 5 segundos
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+        
+        // Carregar dados iniciais
+        loadConfig();
+        refreshQR();
+        
+        // Atualizar status a cada 30 segundos
+        setInterval(refreshQR, 30000);
+    </script>
+</body>
+</html>
