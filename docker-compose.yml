@@ -6,14 +6,14 @@ services:
     container_name: bot-barbearia
     restart: unless-stopped
     ports:
-      - "3000:3000"  # ✅ NOVO: Expor porta para interface web
+      - "80:3000"  # ✅ MUDANÇA: Porta 80 para acesso direto via IP/domínio
     volumes:
       - ./session_data:/usr/src/app/.wwebjs_auth
       - ./logs:/usr/src/app/logs
-      - ./public:/usr/src/app/public  # ✅ NOVO: Volume para arquivos da interface
+      # ✅ REMOVIDO: Volume público (arquivos já estão na imagem)
     environment:
       - NODE_ENV=production
-      - PORT=3000  # ✅ NOVO: Definir porta da aplicação
+      - PORT=3000
     # Configurações específicas para Puppeteer
     cap_add:
       - SYS_ADMIN
@@ -22,7 +22,7 @@ services:
     # Configuração de memória
     mem_limit: 1g
     memswap_limit: 1g
-    # ✅ NOVO: Healthcheck para monitorar se a aplicação está rodando
+    # Healthcheck
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
