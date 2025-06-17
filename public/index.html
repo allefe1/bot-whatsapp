@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bot Barbearia - Painel de Controle</title>
-    <link rel="stylesheet" href="style.css">
+    <!-- ✅ CORRIGIDO: Caminho protegido para CSS -->
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
-    <!-- Adicionar no início do body, antes do h1 -->
+    <!-- Botão de logout -->
     <div style="text-align: right; margin-bottom: 10px;">
         <button class="btn danger" onclick="logout()" style="padding: 8px 16px; font-size: 14px;">
             🚪 Sair
@@ -107,6 +108,7 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script src="script.js"></script>
+    <!-- ✅ CORRIGIDO: Caminho protegido para JavaScript -->
+    <script src="/static/script.js"></script>
 </body>
 </html>

@@ -9,19 +9,18 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// ✅ NOVO: Configuração de sessão
+// ✅ CONFIGURAÇÃO DE SESSÃO PRIMEIRO
 app.use(session({
     secret: 'barbearia-arretado-secret-key-2025',
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: false, // Para desenvolvimento local
+        secure: false,
         maxAge: 24 * 60 * 60 * 1000 // 24 horas
     }
 }));
 
-// Middleware
-app.use(express.static('public'));
+// ✅ MIDDLEWARE BÁSICO (SEM ARQUIVOS ESTÁTICOS AINDA)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -32,21 +31,19 @@ global.io = io;
 global.botClient = null;
 global.botPaused = false;
 
-// ✅ NOVO: PIN de acesso (altere para o PIN desejado)
-const ACCESS_PIN = '1315'; // Altere para seu PIN
+// PIN de acesso
+const ACCESS_PIN = '1315';
 
-// ✅ NOVO: Middleware de autenticação
+// ✅ MIDDLEWARE DE AUTENTICAÇÃO
 function requireAuth(req, res, next) {
     if (req.session.authenticated) {
         return next();
     }
     
-    // Se for uma requisição AJAX, retornar erro JSON
     if (req.xhr || req.headers.accept.indexOf('json') > -1) {
         return res.status(401).json({ error: 'Não autorizado' });
     }
     
-    // Redirecionar para página de login
     res.redirect('/login');
 }
 
@@ -78,7 +75,7 @@ global.botConfig = {
 let lastQRRequest = 0;
 const QR_LOG_INTERVAL = 30000;
 
-// ✅ NOVAS ROTAS: Login
+// ✅ ROTAS PÚBLICAS (SEM AUTENTICAÇÃO)
 app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
@@ -104,7 +101,10 @@ app.post('/logout', (req, res) => {
     res.json({ success: true, message: 'Logout realizado' });
 });
 
-// ✅ ROTAS PROTEGIDAS: Aplicar autenticação
+// ✅ ARQUIVOS ESTÁTICOS PROTEGIDOS
+app.use('/static', requireAuth, express.static(path.join(__dirname, 'public')));
+
+// ✅ ROTAS PROTEGIDAS
 app.get('/', requireAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -327,20 +327,9 @@ app.get('/health', (req, res) => {
     });
 });
 
-// ✅ NOVO: Socket.IO com autenticação
-io.use((socket, next) => {
-    // Verificar se a sessão está autenticada
-    const sessionId = socket.handshake.headers.cookie;
-    if (sessionId) {
-        // Em produção, você pode verificar a sessão aqui
-        next();
-    } else {
-        next(new Error('Não autorizado'));
-    }
-});
-
+// Socket.IO
 io.on('connection', (socket) => {
-    console.log('🌐 Cliente autenticado conectado à interface web');
+    console.log('🌐 Cliente conectado à interface web');
     
     socket.emit('status-update', { 
         status: global.botStatus,
